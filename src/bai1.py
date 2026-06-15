@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import cv2
@@ -10,114 +11,247 @@ LOW_GRAY = 30
 HIGH_GRAY = 120
 
 
-def tinh_histogram(anh_xam):
-    """Tinh histogram 256 muc xam cua anh."""
-    hist = cv2.calcHist([anh_xam], [0], None, [256], [0, 256])
-    return hist.flatten()
+def calculate_histogram(gray_image):
+    """Calculate a 256-level grayscale histogram."""
+    return np.bincount(gray_image.ravel(), minlength=256).astype(np.int64)
 
 
-def ve_histogram(anh_xam, duong_dan_luu, tieu_de):
-    """Ve histogram va luu thanh file anh PNG."""
-    hist = tinh_histogram(anh_xam)
-
-    chieu_rong = 512
-    chieu_cao = 360
-    le_trai = 45
-    le_tren = 35
-    le_duoi = 35
-    vung_ve_rong = chieu_rong
-    vung_ve_cao = chieu_cao - le_tren - le_duoi
-
-    canvas = np.full((chieu_cao, chieu_rong + le_trai + 15, 3), 255, dtype=np.uint8)
-    x0 = le_trai
-    y0 = le_tren
-    x1 = le_trai + vung_ve_rong
-    y1 = le_tren + vung_ve_cao
-
-    cv2.rectangle(canvas, (x0, y0), (x1, y1), (210, 210, 210), 1)
-
-    gia_tri_lon_nhat = hist.max()
-    if gia_tri_lon_nhat > 0:
-        do_rong_cot = vung_ve_rong / 256
-        for muc_xam, so_pixel in enumerate(hist):
-            cot_cao = int((so_pixel / gia_tri_lon_nhat) * (vung_ve_cao - 8))
-            cot_x0 = int(x0 + muc_xam * do_rong_cot)
-            cot_x1 = int(x0 + (muc_xam + 1) * do_rong_cot)
-            cot_y0 = y1 - cot_cao
-            cv2.rectangle(canvas, (cot_x0, cot_y0), (max(cot_x1, cot_x0 + 1), y1), (40, 80, 170), -1)
-
-    cv2.putText(canvas, tieu_de, (x0, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (30, 30, 30), 2)
-    cv2.putText(canvas, "0", (x0 - 2, y1 + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (60, 60, 60), 1)
-    cv2.putText(canvas, "255", (x1 - 30, y1 + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (60, 60, 60), 1)
-    cv2.imwrite(str(duong_dan_luu), canvas)
+def save_histogram_csv(gray_image, output_path):
+    """Save histogram data as: gray_level,pixel_count."""
+    histogram = calculate_histogram(gray_image)
+    with open(output_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        for gray_level, pixel_count in enumerate(histogram):
+            writer.writerow([gray_level, int(pixel_count)])
 
 
-def can_bang_histogram(anh_xam):
-    """Can bang histogram cua anh xam."""
-    return cv2.equalizeHist(anh_xam)
-
-
-def thu_hep_histogram(anh_h2, can_duoi=LOW_GRAY, can_tren=HIGH_GRAY):
+def build_equalization_table(gray_image):
     """
-    Hieu chinh thu hep mien muc xam cua anh H2 ve khoang [can_duoi, can_tren].
-    Cong thuc: s = can_duoi + r * (can_tren - can_duoi) / 255.
+    Build a histogram equalization table with 7 columns:
+    rk, nk, p(rk), sk, rk'=(L-1)sk, round(rk'), equalized nk.
     """
-    anh_float = anh_h2.astype(np.float32)
-    anh_thu_hep = can_duoi + anh_float * (can_tren - can_duoi) / 255
-    return np.clip(anh_thu_hep, can_duoi, can_tren).astype(np.uint8)
+    histogram = calculate_histogram(gray_image)
+    total_pixels = gray_image.size
+    probabilities = histogram / total_pixels
+    cumulative_probabilities = np.cumsum(probabilities)
+    mapped_values = 255 * cumulative_probabilities
+    rounded_mapped_values = np.rint(mapped_values).astype(np.uint8)
+    equalized_image = rounded_mapped_values[gray_image]
+    equalized_histogram = calculate_histogram(equalized_image)
+
+    table_rows = []
+    for gray_level in range(256):
+        table_rows.append(
+            [
+                gray_level,
+                int(histogram[gray_level]),
+                probabilities[gray_level],
+                cumulative_probabilities[gray_level],
+                mapped_values[gray_level],
+                int(rounded_mapped_values[gray_level]),
+                int(equalized_histogram[gray_level]),
+            ]
+        )
+
+    return equalized_image, table_rows
 
 
-def lay_thu_muc_output(ten_file):
+def save_equalization_table_csv(table_rows, output_path):
+    """Save the histogram equalization table as a CSV file."""
+    with open(output_path, "w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["rk", "nk", "p_r_rk", "sk", "rk_prime", "round_rk_prime", "nk_after_equalization"])
+        for row in table_rows:
+            writer.writerow(
+                [
+                    row[0],
+                    row[1],
+                    f"{row[2]:.6f}",
+                    f"{row[3]:.6f}",
+                    f"{row[4]:.6f}",
+                    row[5],
+                    row[6],
+                ]
+            )
+
+
+def draw_histogram(gray_image, output_path, title):
+    """Draw a histogram image and save it as PNG."""
+    histogram = calculate_histogram(gray_image)
+
+    bar_gap = 1
+    bar_width = 3
+    plot_width = 256 * (bar_width + bar_gap)
+    plot_height = 360
+    left_margin = 150
+    right_margin = 60
+    top_margin = 70
+    bottom_margin = 80
+    canvas_width = left_margin + plot_width + right_margin
+    canvas_height = top_margin + plot_height + bottom_margin
+
+    canvas = np.full((canvas_height, canvas_width, 3), 255, dtype=np.uint8)
+    plot_left = left_margin
+    plot_top = top_margin
+    plot_right = left_margin + plot_width
+    plot_bottom = top_margin + plot_height
+
+    text_color = (0, 0, 0)
+    axis_color = (35, 35, 35)
+    grid_color = (225, 225, 225)
+    bar_color = (35, 95, 190)
+
+    max_count = histogram.max()
+    grid_line_count = 5
+    for index in range(1, grid_line_count + 1):
+        grid_y = plot_bottom - index * plot_height // grid_line_count
+        grid_value = int(round(max_count * index / grid_line_count))
+        cv2.line(canvas, (plot_left, grid_y), (plot_right, grid_y), grid_color, 1)
+
+        grid_label = str(grid_value)
+        label_size, _ = cv2.getTextSize(grid_label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+        cv2.putText(
+            canvas,
+            grid_label,
+            (plot_left - label_size[0] - 12, grid_y + 6),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            text_color,
+            1,
+            cv2.LINE_8,
+        )
+
+    cv2.arrowedLine(canvas, (plot_left, plot_bottom), (plot_left, plot_top - 18), axis_color, 2, tipLength=0.025)
+    cv2.arrowedLine(canvas, (plot_left, plot_bottom), (plot_right + 25, plot_bottom), axis_color, 2, tipLength=0.025)
+
+    if max_count > 0:
+        for gray_level, pixel_count in enumerate(histogram):
+            bar_height = int((pixel_count / max_count) * (plot_height - 8))
+            bar_left = plot_left + gray_level * (bar_width + bar_gap)
+            bar_right = bar_left + bar_width - 1
+            bar_top = plot_bottom - bar_height
+            cv2.rectangle(canvas, (bar_left, bar_top), (bar_right, plot_bottom), bar_color, -1)
+
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    title_scale = 0.8
+    title_thickness = 2
+    text_scale = 0.6
+    text_thickness = 2
+
+    title_size, _ = cv2.getTextSize(title, font, title_scale, title_thickness)
+    title_x = (canvas_width - title_size[0]) // 2
+    cv2.putText(canvas, title, (title_x, 38), font, title_scale, text_color, title_thickness, cv2.LINE_8)
+
+    cv2.putText(canvas, "0", (plot_left - 5, plot_bottom + 28), font, text_scale, text_color, text_thickness, cv2.LINE_8)
+    cv2.putText(canvas, "255", (plot_right - 40, plot_bottom + 28), font, text_scale, text_color, text_thickness, cv2.LINE_8)
+    cv2.putText(
+        canvas,
+        "Muc xam",
+        (plot_left + plot_width // 2 - 45, plot_bottom + 62),
+        font,
+        text_scale,
+        text_color,
+        text_thickness,
+        cv2.LINE_8,
+    )
+
+    y_axis_label = "So pixel"
+    y_label_size, _ = cv2.getTextSize(y_axis_label, font, text_scale, text_thickness)
+    y_label_image = np.full((y_label_size[1] + 16, y_label_size[0] + 16, 3), 255, dtype=np.uint8)
+    cv2.putText(
+        y_label_image,
+        y_axis_label,
+        (8, y_label_size[1] + 8),
+        font,
+        text_scale,
+        text_color,
+        text_thickness,
+        cv2.LINE_8,
+    )
+    y_label_image = cv2.rotate(y_label_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    y_label_top = plot_top + (plot_height - y_label_image.shape[0]) // 2
+    y_label_left = 18
+    canvas[
+        y_label_top:y_label_top + y_label_image.shape[0],
+        y_label_left:y_label_left + y_label_image.shape[1],
+    ] = y_label_image
+
+    cv2.imwrite(str(output_path), canvas)
+
+
+def equalize_histogram(gray_image):
+    """Equalize a grayscale image using the generated equalization table."""
+    equalized_image, _ = build_equalization_table(gray_image)
+    return equalized_image
+
+
+def shrink_histogram_range(equalized_image, lower_bound=LOW_GRAY, upper_bound=HIGH_GRAY):
     """
-    Chuyen ten image_01_gray.png thanh thu muc data/output/img01.
+    Shrink the gray-level range of the equalized image to [lower_bound, upper_bound].
+    Formula: s = ((smax - smin) / (rmax - rmin)) * (r - rmin) + smin.
     """
-    so_thu_tu = ten_file.replace("image_", "").replace("_gray", "")
-    return OUTPUT_DIR / f"img{so_thu_tu}"
+    input_min = int(equalized_image.min())
+    input_max = int(equalized_image.max())
+    if input_max == input_min:
+        return np.full_like(equalized_image, lower_bound, dtype=np.uint8)
+
+    image_float = equalized_image.astype(np.float32)
+    narrowed_image = ((upper_bound - lower_bound) / (input_max - input_min)) * (image_float - input_min) + lower_bound
+    return np.clip(narrowed_image, lower_bound, upper_bound).astype(np.uint8)
 
 
-def xu_ly_mot_anh(duong_dan_anh_xam):
-    anh_xam = cv2.imread(str(duong_dan_anh_xam), cv2.IMREAD_GRAYSCALE)
-    if anh_xam is None:
-        print(f"Khong doc duoc anh xam: {duong_dan_anh_xam}")
+def get_output_folder(file_stem):
+    """Convert image_01_gray to data/output/img01."""
+    image_number = file_stem.replace("image_", "").replace("_gray", "")
+    return OUTPUT_DIR / f"img{image_number}"
+
+
+def process_one_image(gray_image_path):
+    gray_image = cv2.imread(str(gray_image_path), cv2.IMREAD_GRAYSCALE)
+    if gray_image is None:
+        print(f"Cannot read grayscale image: {gray_image_path}")
         return
 
-    ten_goc = duong_dan_anh_xam.stem
-    thu_muc_luu = lay_thu_muc_output(ten_goc)
-
-    if not thu_muc_luu.exists():
-        print(f"Bo qua {duong_dan_anh_xam.name}: chua co thu muc {thu_muc_luu}")
+    output_folder = get_output_folder(gray_image_path.stem)
+    if not output_folder.exists():
+        print(f"Skip {gray_image_path.name}: missing output folder {output_folder}")
         return
 
-    anh_h2 = can_bang_histogram(anh_xam)
-    anh_h2_thu_hep = thu_hep_histogram(anh_h2)
+    equalized_image, equalization_table = build_equalization_table(gray_image)
+    narrowed_image = shrink_histogram_range(equalized_image)
 
-    cv2.imwrite(str(thu_muc_luu / "H2_equalized.png"), anh_h2)
-    cv2.imwrite(str(thu_muc_luu / "H2_narrow_30_120.png"), anh_h2_thu_hep)
+    cv2.imwrite(str(output_folder / "H2_equalized.png"), equalized_image)
+    cv2.imwrite(str(output_folder / "H2_narrow_30_120.png"), narrowed_image)
 
-    ve_histogram(anh_xam, thu_muc_luu / "H1_histogram.png", "H1 - Histogram anh xam")
-    ve_histogram(anh_h2, thu_muc_luu / "H2_histogram.png", "H2 - Histogram can bang")
-    ve_histogram(
-        anh_h2_thu_hep,
-        thu_muc_luu / "H2_narrow_30_120_histogram.png",
+    save_histogram_csv(gray_image, output_folder / "H1_histogram.csv")
+    save_equalization_table_csv(equalization_table, output_folder / "H2_equalization_table.csv")
+    save_histogram_csv(equalized_image, output_folder / "H2_histogram.csv")
+    save_histogram_csv(narrowed_image, output_folder / "H2_narrow_30_120_histogram.csv")
+
+    draw_histogram(gray_image, output_folder / "H1_histogram.png", "H1 - Histogram anh xam")
+    draw_histogram(equalized_image, output_folder / "H2_histogram.png", "H2 - Histogram can bang")
+    draw_histogram(
+        narrowed_image,
+        output_folder / "H2_narrow_30_120_histogram.png",
         "Histogram H2 thu hep [30, 120]",
     )
 
-    print(f"Da luu ket qua {duong_dan_anh_xam.name} vao {thu_muc_luu}")
+    print(f"Saved results for {gray_image_path.name} to {output_folder}")
 
 
-def xu_ly_bai1():
+def process_all_images():
     if not GRAY_INPUT_DIR.exists():
-        print(f"Khong tim thay thu muc anh xam: {GRAY_INPUT_DIR}")
+        print(f"Cannot find grayscale folder: {GRAY_INPUT_DIR}")
         return
 
-    danh_sach_anh_xam = sorted(GRAY_INPUT_DIR.glob("*_gray.png"))
-    if not danh_sach_anh_xam:
-        print(f"Khong co anh *_gray.png trong {GRAY_INPUT_DIR}")
+    gray_image_paths = sorted(GRAY_INPUT_DIR.glob("*_gray.png"))
+    if not gray_image_paths:
+        print(f"No *_gray.png files found in {GRAY_INPUT_DIR}")
         return
 
-    for duong_dan_anh_xam in danh_sach_anh_xam:
-        xu_ly_mot_anh(duong_dan_anh_xam)
+    for gray_image_path in gray_image_paths:
+        process_one_image(gray_image_path)
 
 
 if __name__ == "__main__":
-    xu_ly_bai1()
+    process_all_images()
