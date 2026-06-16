@@ -206,6 +206,11 @@ def get_output_folder(file_stem):
     return OUTPUT_DIR / f"img{image_number}"
 
 
+def get_image_prefix(file_stem):
+    """Convert image_01_gray to image_01."""
+    return file_stem.replace("_gray", "")
+
+
 def process_one_image(gray_image_path):
     gray_image = cv2.imread(str(gray_image_path), cv2.IMREAD_GRAYSCALE)
     if gray_image is None:
@@ -213,6 +218,7 @@ def process_one_image(gray_image_path):
         return
 
     output_folder = get_output_folder(gray_image_path.stem)
+    image_prefix = get_image_prefix(gray_image_path.stem)
     if not output_folder.exists():
         print(f"Skip {gray_image_path.name}: missing output folder {output_folder}")
         return
@@ -220,19 +226,19 @@ def process_one_image(gray_image_path):
     equalized_image, equalization_table = build_equalization_table(gray_image)
     narrowed_image = shrink_histogram_range(equalized_image)
 
-    cv2.imwrite(str(output_folder / "H2_equalized.png"), equalized_image)
-    cv2.imwrite(str(output_folder / "H2_narrow_30_120.png"), narrowed_image)
+    cv2.imwrite(str(output_folder / f"{image_prefix}_H2_equalized.png"), equalized_image)
+    cv2.imwrite(str(output_folder / f"{image_prefix}_H2_narrow_30_120.png"), narrowed_image)
 
-    save_histogram_csv(gray_image, output_folder / "H1_histogram.csv")
-    save_equalization_table_csv(equalization_table, output_folder / "H2_equalization_table.csv")
-    save_histogram_csv(equalized_image, output_folder / "H2_histogram.csv")
-    save_histogram_csv(narrowed_image, output_folder / "H2_narrow_30_120_histogram.csv")
+    save_histogram_csv(gray_image, output_folder / f"{image_prefix}_H1_histogram.csv")
+    save_equalization_table_csv(equalization_table, output_folder / f"{image_prefix}_H2_equalization_table.csv")
+    save_histogram_csv(equalized_image, output_folder / f"{image_prefix}_H2_histogram.csv")
+    save_histogram_csv(narrowed_image, output_folder / f"{image_prefix}_H2_narrow_30_120_histogram.csv")
 
-    draw_histogram(gray_image, output_folder / "H1_histogram.png", "H1 - Histogram anh xam")
-    draw_histogram(equalized_image, output_folder / "H2_histogram.png", "H2 - Histogram can bang")
+    draw_histogram(gray_image, output_folder / f"{image_prefix}_H1_histogram.png", "H1 - Histogram anh xam")
+    draw_histogram(equalized_image, output_folder / f"{image_prefix}_H2_histogram.png", "H2 - Histogram can bang")
     draw_histogram(
         narrowed_image,
-        output_folder / "H2_narrow_30_120_histogram.png",
+        output_folder / f"{image_prefix}_H2_narrow_30_120_histogram.png",
         "Histogram H2 thu hep [30, 120]",
     )
 
