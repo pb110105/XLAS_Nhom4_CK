@@ -3,6 +3,7 @@ import cv2
 
 # Import hàm chuyển xám từ utils.py
 from src.utils import rgb_to_gray
+from src.bai2 import process_bai2 
 
 def process_one_image(img_path, img_file, input_dir, output_dir):
     """
@@ -20,7 +21,7 @@ def process_one_image(img_path, img_file, input_dir, output_dir):
 
     # 3. Chuyển RGB sang Gray
     img_gray = rgb_to_gray(img_rgb)
-
+    
     # 4. Đổi tên file (VD: img01.jpg -> img01_gray.png) và lưu
     filename_without_ext = os.path.splitext(img_file)[0]
     gray_filename = f"{filename_without_ext}_gray.png"
@@ -28,6 +29,10 @@ def process_one_image(img_path, img_file, input_dir, output_dir):
     
     cv2.imwrite(gray_filepath, img_gray)
     print(f"Đã xử lý và lưu: {gray_filepath}")
+
+    process_bai2(img_gray, output_dir, filename_without_ext)
+
+
 
 
 def process_all_images(input_dir="data/input", output_dir="data/output"):

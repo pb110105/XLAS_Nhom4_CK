@@ -1,0 +1,6 @@
+opencv-python
+numpy
+matplotlib
+#Cài thư viện bằng:
+pip install -r requirements.txt
+
