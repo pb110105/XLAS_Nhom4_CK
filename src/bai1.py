@@ -179,12 +179,6 @@ def draw_histogram(gray_image, output_path, title):
     cv2.imwrite(str(output_path), canvas)
 
 
-def equalize_histogram(gray_image):
-    """Equalize a grayscale image using the generated equalization table."""
-    equalized_image, _ = build_equalization_table(gray_image)
-    return equalized_image
-
-
 def shrink_histogram_range(equalized_image, lower_bound=LOW_GRAY, upper_bound=HIGH_GRAY):
     """
     Shrink the gray-level range of the equalized image to [lower_bound, upper_bound].

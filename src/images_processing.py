@@ -5,7 +5,7 @@ import cv2
 from src.utils import rgb_to_gray
 from src.bai2 import process_bai2 
 
-def process_one_image(img_path, img_file, input_dir, output_dir):
+def process_one_image(img_path, img_file, output_dir):
     """
     Hàm xử lý cho một ảnh: Đọc ảnh, chuyển xám, và lưu.
     """
@@ -50,4 +50,4 @@ def process_all_images(input_dir="data/input", output_dir="data/output"):
 
     for img_file in image_files:
         img_path = os.path.join(input_dir, img_file)
-        process_one_image(img_path, img_file, input_dir, output_dir)
+        process_one_image(img_path, img_file, output_dir)
