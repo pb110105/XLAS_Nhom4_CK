@@ -113,16 +113,7 @@ def process_and_save_lbp(img, filename, output_dir, P, R):
     out_path = os.path.join(output_dir, out_name)
     cv2.imwrite(out_path, final_lbp_img)
 
-def run_task_3():
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    input_gray_dir = os.path.join(
-        BASE_DIR,
-        "data",
-        "output",
-        "grayscale"
-    )
-    
+def run(input_dir="data/output/grayscale", output_dir="data/output"):
     # Cấu hình đề bài
     configs = [
         (8, 1),
@@ -132,14 +123,14 @@ def run_task_3():
         (24, 3)
     ]
 
-    if not os.path.exists(input_gray_dir):
-        print(f"[LỖI] Không tìm thấy {input_gray_dir}. TV1 cần chạy script trước.")
+    if not os.path.exists(input_dir):
+        print(f"[LỖI] Không tìm thấy {input_dir}. Hãy chạy bước tạo ảnh xám trước.")
         return
 
-    gray_images = [f for f in os.listdir(input_gray_dir) if f.endswith(('.png', '.jpg'))]
+    gray_images = sorted(f for f in os.listdir(input_dir) if f.lower().endswith((".png", ".jpg", ".jpeg")))
     
     for img_name in gray_images:
-        img_path = os.path.join(input_gray_dir, img_name)
+        img_path = os.path.join(input_dir, img_name)
         img_gray = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         
         if img_gray is None:
@@ -152,18 +143,19 @@ def run_task_3():
         # In ra màn hình dòng thông báo như bạn muốn
         print(f"\n[BẮT ĐẦU] Xử lý: {img_name} có số pixel là {total_pixels:,} ({cols}x{rows})")
             
-        # Tìm folder lưu trữ theo tên ảnh (image_01_gray -> img01)
+        # Tìm folder lưu trữ theo tên ảnh (image_01_gray -> img01/b3)
         try:
             img_num = img_name.split('_')[1]
-            output_dir = os.path.join(BASE_DIR, "data", "output", f"img{img_num}")
-            os.makedirs(output_dir, exist_ok=True)
+            image_output_dir = os.path.join(output_dir, f"img{img_num}", "b3")
         except IndexError:
-            output_dir = os.path.join(BASE_DIR, "data", "output", "lbp_results")
+            image_output_dir = os.path.join(output_dir, "lbp_results", "b3")
+
+        os.makedirs(image_output_dir, exist_ok=True)
 
         for P, R in configs:
-            process_and_save_lbp(img_gray, img_name, output_dir, P, R)
+            process_and_save_lbp(img_gray, img_name, image_output_dir, P, R)
             
     print("\n[HOÀN THÀNH] Xong bài 3!")
 
 if __name__ == "__main__":
-    run_task_3()
+    run()

@@ -1,11 +1,30 @@
 # XLAS_CK_Nhom4
-bai1.py
-→ Hải làm Histogram: H1, H2, thu hẹp [30,120]
 
-bai2.py
-→ Bảo + Quốc làm chung Bài 2
-   - Bảo: convolution, tạo I1, I2, I3
-   - Quốc: median filter, tạo I4, I5, I6
+Chạy toàn bộ pipeline (Bài 4):
 
-bai3.py
-→ Hoàng làm LBP
+```powershell
+python main.py
+```
+
+`main.py` sẽ xóa toàn bộ `data/output`, tạo lại ảnh xám và chạy lần lượt:
+
+1. Bài 1: Histogram H1, H2 và thu hẹp [30, 120].
+2. Bài 2: Convolution, median filter và tạo I1–I6.
+3. Bài 3: Local Binary Pattern (LBP).
+
+Kết quả của mỗi ảnh được chia theo từng bài:
+
+```text
+data/output/img01/
+├── b1/
+├── b2/
+└── b3/
+```
+
+Ba bài có chung giao diện `run(input_dir, output_dir)` và vẫn có thể chạy riêng:
+
+```powershell
+python -m src.bai1
+python -m src.bai2
+python -m src.bai3
+```

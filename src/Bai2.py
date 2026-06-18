@@ -245,7 +245,7 @@ def create_I4_I5_I6(I1, I3):
 def process_bai2(img_gray, output_dir, filename_without_ext):
     # Tạo I1, I2, I3
     folder_name = filename_without_ext.replace("image_", "img")
-    bai2_dir = os.path.join(output_dir, folder_name)
+    bai2_dir = os.path.join(output_dir, folder_name, "b2")
     os.makedirs(bai2_dir, exist_ok=True)
 
     I1, I2, I3 = create_I1_I2_I3(img_gray)
@@ -301,7 +301,7 @@ def process_bai2(img_gray, output_dir, filename_without_ext):
 # CHẠY BÀI 2 CHO TOÀN BỘ ẢNH XÁM
 # =========================
 
-def run_all_bai2():
+def run(input_dir="data/output/grayscale", output_dir="data/output"):
     """
     Chạy Bài 2 cho toàn bộ ảnh xám trong:
     data/output/grayscale/
@@ -310,36 +310,26 @@ def run_all_bai2():
     data/output/grayscale/img01_gray.png
 
     Output:
-    data/output/img01/
+    data/output/img01/b2/
     """
 
-    # Lấy thư mục gốc project:
-    # XLAS_Nhom4_CK/
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    # Thư mục ảnh xám
-    gray_dir = os.path.join(project_root, "data", "output", "grayscale")
-
-    # Thư mục lưu kết quả
-    output_dir = os.path.join(project_root, "data", "output")
-
-    if not os.path.exists(gray_dir):
-        print(f"[LỖI] Không tìm thấy thư mục ảnh xám: {gray_dir}")
+    if not os.path.exists(input_dir):
+        print(f"[LỖI] Không tìm thấy thư mục ảnh xám: {input_dir}")
         return
 
     image_files = sorted([
-        f for f in os.listdir(gray_dir)
+        f for f in os.listdir(input_dir)
         if f.lower().endswith((".png", ".jpg", ".jpeg"))
     ])
 
     if len(image_files) == 0:
-        print(f"[LỖI] Không có ảnh xám trong thư mục: {gray_dir}")
+        print(f"[LỖI] Không có ảnh xám trong thư mục: {input_dir}")
         return
 
     print(f"Tìm thấy {len(image_files)} ảnh xám. Bắt đầu chạy Bài 2...")
 
     for img_file in image_files:
-        img_path = os.path.join(gray_dir, img_file)
+        img_path = os.path.join(input_dir, img_file)
 
         img_gray = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
 
@@ -359,4 +349,4 @@ def run_all_bai2():
 
 
 if __name__ == "__main__":
-    run_all_bai2()
+    run()

@@ -5,8 +5,6 @@ import cv2
 import numpy as np
 
 
-GRAY_INPUT_DIR = Path("data/output/grayscale")
-OUTPUT_DIR = Path("data/output")
 LOW_GRAY = 30
 HIGH_GRAY = 120
 
@@ -194,10 +192,10 @@ def shrink_histogram_range(equalized_image, lower_bound=LOW_GRAY, upper_bound=HI
     return np.clip(narrowed_image, lower_bound, upper_bound).astype(np.uint8)
 
 
-def get_output_folder(file_stem):
-    """Convert image_01_gray to data/output/img01."""
+def get_output_folder(file_stem, output_dir):
+    """Convert image_01_gray to data/output/img01/b1."""
     image_number = file_stem.replace("image_", "").replace("_gray", "")
-    return OUTPUT_DIR / f"img{image_number}"
+    return output_dir / f"img{image_number}" / "b1"
 
 
 def get_image_prefix(file_stem):
@@ -205,17 +203,15 @@ def get_image_prefix(file_stem):
     return file_stem.replace("_gray", "")
 
 
-def process_one_image(gray_image_path):
+def process_one_image(gray_image_path, output_dir):
     gray_image = cv2.imread(str(gray_image_path), cv2.IMREAD_GRAYSCALE)
     if gray_image is None:
         print(f"Cannot read grayscale image: {gray_image_path}")
         return
 
-    output_folder = get_output_folder(gray_image_path.stem)
+    output_folder = get_output_folder(gray_image_path.stem, output_dir)
     image_prefix = get_image_prefix(gray_image_path.stem)
-    if not output_folder.exists():
-        print(f"Skip {gray_image_path.name}: missing output folder {output_folder}")
-        return
+    output_folder.mkdir(parents=True, exist_ok=True)
 
     equalized_image, equalization_table = build_equalization_table(gray_image)
     narrowed_image = shrink_histogram_range(equalized_image)
@@ -239,19 +235,22 @@ def process_one_image(gray_image_path):
     print(f"Saved results for {gray_image_path.name} to {output_folder}")
 
 
-def process_all_images():
-    if not GRAY_INPUT_DIR.exists():
-        print(f"Cannot find grayscale folder: {GRAY_INPUT_DIR}")
+def run(input_dir="data/output/grayscale", output_dir="data/output"):
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+
+    if not input_dir.exists():
+        print(f"Cannot find grayscale folder: {input_dir}")
         return
 
-    gray_image_paths = sorted(GRAY_INPUT_DIR.glob("*_gray.png"))
+    gray_image_paths = sorted(input_dir.glob("*_gray.png"))
     if not gray_image_paths:
-        print(f"No *_gray.png files found in {GRAY_INPUT_DIR}")
+        print(f"No *_gray.png files found in {input_dir}")
         return
 
     for gray_image_path in gray_image_paths:
-        process_one_image(gray_image_path)
+        process_one_image(gray_image_path, output_dir)
 
 
 if __name__ == "__main__":
-    process_all_images()
+    run()

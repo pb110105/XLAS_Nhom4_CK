@@ -1,9 +1,8 @@
 import os
 import cv2
 
-# Import hàm chuyển xám từ utils.py
 from src.utils import rgb_to_gray
-from src.bai2 import process_bai2 
+
 
 def process_one_image(img_path, img_file, output_dir):
     """
@@ -30,14 +29,10 @@ def process_one_image(img_path, img_file, output_dir):
     cv2.imwrite(gray_filepath, img_gray)
     print(f"Đã xử lý và lưu: {gray_filepath}")
 
-    process_bai2(img_gray, output_dir, filename_without_ext)
 
-
-
-
-def process_all_images(input_dir="data/input", output_dir="data/output"):
+def run(input_dir="data/input", output_dir="data/output"):
     """
-    Hàm lặp qua 10 ảnh trong thư mục data/input/ và chạy pipeline.
+    Chuyển toàn bộ ảnh đầu vào sang ảnh xám để ba bài cùng sử dụng.
     """
     if not os.path.exists(input_dir):
         print(f"Không tìm thấy thư mục '{input_dir}'. Hãy đảm bảo cấu trúc thư mục đúng.")
@@ -46,7 +41,7 @@ def process_all_images(input_dir="data/input", output_dir="data/output"):
     valid_extensions = (".jpg", ".jpeg", ".png")
     image_files = sorted([f for f in os.listdir(input_dir) if f.lower().endswith(valid_extensions)])
     
-    print(f"Tìm thấy {len(image_files)} ảnh. Bắt đầu xử lý pipeline...")
+    print(f"Tìm thấy {len(image_files)} ảnh. Bắt đầu tạo ảnh xám...")
 
     for img_file in image_files:
         img_path = os.path.join(input_dir, img_file)
