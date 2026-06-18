@@ -68,7 +68,7 @@ def create_I1_I2_I3(img_gray):
 
 
 # =========================
-# PHẦN QUỐC - MEDIAN + I6
+# MEDIAN + I6
 # =========================
 
 def median_filter_manual(image, kernel_size):
