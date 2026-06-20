@@ -47,7 +47,7 @@ def build_equalization_table(gray_image):
                 cumulative_probabilities[gray_level],
                 mapped_values[gray_level],
                 int(rounded_mapped_values[gray_level]),
-                int(equalized_histogram[gray_level]),
+                int(equalized_histogram[rounded_mapped_values[gray_level]]),
             ]
         )
 
